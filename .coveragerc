@@ -1,0 +1,5 @@
+[run]
+source = .
+branch = True
+parallel = True
+omit = .tox/*
