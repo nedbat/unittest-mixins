@@ -1,0 +1,8 @@
+*.pyc
+.coverage
+htmlcov
+.tox
+MANIFEST
+*.egg-info
+build
+dist
