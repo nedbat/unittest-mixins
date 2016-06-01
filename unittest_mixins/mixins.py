@@ -167,11 +167,11 @@ class StdStreamCapturingMixin(unittest.TestCase):
         # but it doesn't capture stderr, so we don't want to Tee stderr to the
         # real stderr, since it will interfere with our nice field of dots.
         old_stdout = sys.stdout
-        self.captured_stdout = StringIO()
+        self.captured_stdout = six.StringIO()
         sys.stdout = Tee(sys.stdout, self.captured_stdout)
 
         old_stderr = sys.stderr
-        self.captured_stderr = StringIO()
+        self.captured_stderr = six.StringIO()
         sys.stderr = self.captured_stderr
 
         self.addCleanup(self.cleanup_std_streams, old_stdout, old_stderr)
