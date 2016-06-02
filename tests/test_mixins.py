@@ -4,10 +4,8 @@
 
 """Tests that our test infrastructure is really working!"""
 
-import datetime
 import os
 import re
-import sys
 import textwrap
 try:
     import unittest2 as unittest
@@ -53,7 +51,10 @@ class TempDirMixinTest(TempDirMixin, unittest.TestCase):
         self.make_file("unicode.txt", "tabblo: «ταБЬℓσ»")
         with open("unicode.txt", "rb") as f:
             text = f.read()
-        self.assertEqual(text, b"tabblo: \xc2\xab\xcf\x84\xce\xb1\xd0\x91\xd0\xac\xe2\x84\x93\xcf\x83\xc2\xbb")
+        self.assertEqual(
+            text,
+            b"tabblo: \xc2\xab\xcf\x84\xce\xb1\xd0\x91\xd0\xac\xe2\x84\x93\xcf\x83\xc2\xbb"
+        )
 
 
 class EnvironmentAwareMixinTest(EnvironmentAwareMixin, unittest.TestCase):
