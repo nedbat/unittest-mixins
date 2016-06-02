@@ -12,7 +12,10 @@ import shutil
 import sys
 import tempfile
 import textwrap
-import unittest
+try:
+    import unittest2 as unittest
+except:
+    import unittest
 
 import six
 
