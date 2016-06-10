@@ -66,8 +66,8 @@ class EnvironmentAwareMixinTest(EnvironmentAwareMixin, unittest.TestCase):
         # Find a pre-existing environment variable.
         # Not sure what environment variables are available in all of our
         # different testing environments, so try a bunch.
-        for envvar in ["HOME", "HOMEDIR", "USER", "SYSTEMDRIVE", "TEMP"]:   # pragma: part covered
-            if envvar in os.environ:
+        for envvar in ["HOME", "HOMEDIR", "USER", "SYSTEMDRIVE", "TEMP"]:   # pragma: no branch
+            if envvar in os.environ:                                        # pragma: no branch
                 self.envvar = envvar
                 self.original_text = os.environ[envvar]
                 break
