@@ -18,10 +18,12 @@ clean:
 	-rm -rf __pycache__ */__pycache__ */*/__pycache__ */*/*/__pycache__ */*/*/*/__pycache__ */*/*/*/*/__pycache__
 	-rm -f MANIFEST
 	-rm -f .coverage .coverage.* coverage.xml
+	-rm -rf htmlcov
 	-rm -f setuptools-*.egg distribute-*.egg distribute-*.tar.gz
 
 sterile: clean
 	-rm -rf .tox*
+	-rm -rf .cache
 
 SDIST_CMD = python setup.py sdist --formats=gztar
 
