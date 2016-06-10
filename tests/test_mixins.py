@@ -60,31 +60,60 @@ class TempDirMixinTest(TempDirMixin, unittest.TestCase):
 class EnvironmentAwareMixinTest(EnvironmentAwareMixin, unittest.TestCase):
     """Tests of test_helpers.EnvironmentAwareMixin."""
 
-    def test_setting_and_cleaning_env_vars(self):
-        # The before state.
+    def setUp(self):
+        super(EnvironmentAwareMixinTest, self).setUp()
+
+        # Find a pre-existing environment variable.
         # Not sure what environment variables are available in all of our
         # different testing environments, so try a bunch.
         for envvar in ["HOME", "HOMEDIR", "USER", "SYSTEMDRIVE", "TEMP"]:   # pragma: part covered
             if envvar in os.environ:
-                original_text = os.environ[envvar]
-                new_text = "Some Strange Text"
+                self.envvar = envvar
+                self.original_text = os.environ[envvar]
                 break
-        # pylint: disable=undefined-loop-variable
-        self.assertNotEqual(original_text, new_text)
+
+    def test_setting_and_cleaning_existing_env_vars(self):
+        self.assertNotEqual(self.original_text,  "Some Strange Text")
+
+        # Change the environment.
+        self.set_environ(self.envvar, "Some Strange Text")
+        self.assertEqual(os.environ[self.envvar],  "Some Strange Text")
+
+        # Do the clean ups early.
+        self.doCleanups()
+
+        # The environment should be restored.
+        self.assertEqual(os.environ[self.envvar], self.original_text)
+
+    def test_setting_and_cleaning_existing_env_vars_twice(self):
+        self.assertNotEqual(self.original_text,  "Some Strange Text")
+
+        # Change the environment.
+        self.set_environ(self.envvar, "Some Strange Text")
+        self.assertEqual(os.environ[self.envvar],  "Some Strange Text")
+
+        # Change the environment again.
+        self.set_environ(self.envvar, "Some Other Thing")
+        self.assertEqual(os.environ[self.envvar],  "Some Other Thing")
+
+        # Do the clean ups early.
+        self.doCleanups()
+
+        # The environment should be restored.
+        self.assertEqual(os.environ[self.envvar], self.original_text)
+
+    def test_setting_and_cleaning_nonexisting_env_vars(self):
         self.assertNotIn("XYZZY_PLUGH", os.environ)
 
         # Change the environment.
-        self.set_environ(envvar, new_text)
         self.set_environ("XYZZY_PLUGH", "Vogon")
 
-        self.assertEqual(os.environ[envvar], new_text)
         self.assertEqual(os.environ["XYZZY_PLUGH"], "Vogon")
 
         # Do the clean ups early.
         self.doCleanups()
 
         # The environment should be restored.
-        self.assertEqual(os.environ[envvar], original_text)
         self.assertNotIn("XYZZY_PLUGH", os.environ)
 
 
