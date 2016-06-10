@@ -2,4 +2,6 @@
 source = .
 branch = True
 parallel = True
-omit = .tox/*
+omit =
+    .tox/*
+    setup.py
