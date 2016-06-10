@@ -91,7 +91,7 @@ class EnvironmentAwareMixinTest(EnvironmentAwareMixin, unittest.TestCase):
 class DelayedAssertionMixinTest(DelayedAssertionMixin, unittest.TestCase):
     """Test the `delayed_assertions` method."""
 
-    def test_delayed_assertions(self):
+    def test_two_delayed_assertions(self):
         # Two assertions can be shown at once:
         msg = re.escape(textwrap.dedent("""\
             2 failed assertions:
@@ -108,6 +108,7 @@ class DelayedAssertionMixinTest(DelayedAssertionMixin, unittest.TestCase):
                 self.assertEqual("x", "y")
                 self.assertEqual("w", "z")
 
+    def test_only_one_fails(self):
         # It's also OK if only one fails:
         msg = re.escape(textwrap.dedent("""\
             'w' != 'z'
@@ -119,9 +120,16 @@ class DelayedAssertionMixinTest(DelayedAssertionMixin, unittest.TestCase):
                 self.assertEqual("x", "x")
                 self.assertEqual("w", "z")
 
+    def test_non_assert_error(self):
         # If an error happens, it gets reported immediately, no special
         # handling:
         with self.assertRaises(ZeroDivisionError):
             with self.delayed_assertions():
                 self.assertEqual("x", "y")
                 self.assertEqual("w", 1/0)
+
+    def test_no_problem_at_all(self):
+        # If all assert pass, then all is well:
+        with self.delayed_assertions():
+            self.assertEqual("x", "x")
+            self.assertEqual("y", "y")
