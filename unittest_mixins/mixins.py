@@ -177,9 +177,9 @@ class StdStreamCapturingMixin(unittest.TestCase):
         self.captured_stderr = six.StringIO()
         sys.stderr = self.captured_stderr
 
-        self.addCleanup(self.cleanup_std_streams, old_stdout, old_stderr)
+        self.addCleanup(self._cleanup_std_streams, old_stdout, old_stderr)
 
-    def cleanup_std_streams(self, old_stdout, old_stderr):
+    def _cleanup_std_streams(self, old_stdout, old_stderr):
         """Restore stdout and stderr."""
         sys.stdout = old_stdout
         sys.stderr = old_stderr
