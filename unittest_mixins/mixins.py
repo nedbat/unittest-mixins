@@ -107,7 +107,7 @@ class ModuleAwareMixin(unittest.TestCase):
         super(ModuleAwareMixin, self).setUp()
 
         # Record sys.modules here so we can restore it in cleanup_modules.
-        self.old_modules = list(sys.modules)
+        self._old_modules = list(sys.modules)
         self.addCleanup(self.cleanup_modules)
 
     def cleanup_modules(self):
@@ -117,7 +117,7 @@ class ModuleAwareMixin(unittest.TestCase):
         if called explicitly, within one test.
 
         """
-        for m in [m for m in sys.modules if m not in self.old_modules]:
+        for m in [m for m in sys.modules if m not in self._old_modules]:
             del sys.modules[m]
 
 
