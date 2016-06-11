@@ -302,10 +302,10 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
         self.addCleanup(shutil.rmtree, temp_dir)
         return temp_dir
 
-    def skip(self, reason):
+    def skipTest(self, reason):
         """Skip this test, and give a reason."""
         self._class_behavior().skipped += 1
-        raise SkipTest(reason)
+        super(TempDirMixin, self).skipTest(reason)
 
     def chdir(self, new_dir):
         """Change directory, and change back when the test is done."""
