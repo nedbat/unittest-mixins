@@ -108,12 +108,13 @@ class ModuleAwareMixin(unittest.TestCase):
 
         # Record sys.modules here so we can restore it in cleanup_modules.
         self.old_modules = list(sys.modules)
-        self.addCleanup(self._cleanup_modules)
+        self.addCleanup(self.cleanup_modules)
 
-    def _cleanup_modules(self):
+    def cleanup_modules(self):
         """Remove any new modules imported during the test run.
 
-        This lets us import the same source files for more than one test.
+        This lets us import the same source files for more than one test, or
+        if called explicitly, within one test.
 
         """
         for m in [m for m in sys.modules if m not in self.old_modules]:
@@ -170,12 +171,12 @@ class StdStreamCapturingMixin(unittest.TestCase):
         # it, but it doesn't capture stderr, so we don't want to _Tee stderr to
         # the real stderr, since it will interfere with our nice field of dots.
         old_stdout = sys.stdout
-        self._captured_stdout = six.StringIO()
-        sys.stdout = _Tee(sys.stdout, self._captured_stdout)
+        self.captured_stdout = six.StringIO()
+        sys.stdout = _Tee(sys.stdout, self.captured_stdout)
 
         old_stderr = sys.stderr
-        self._captured_stderr = six.StringIO()
-        sys.stderr = self._captured_stderr
+        self.captured_stderr = six.StringIO()
+        sys.stderr = self.captured_stderr
 
         self.addCleanup(self._cleanup_std_streams, old_stdout, old_stderr)
 
@@ -186,11 +187,11 @@ class StdStreamCapturingMixin(unittest.TestCase):
 
     def stdout(self):
         """Return the data written to stdout during the test."""
-        return self._captured_stdout.getvalue()
+        return self.captured_stdout.getvalue()
 
     def stderr(self):
         """Return the data written to stderr during the test."""
-        return self._captured_stderr.getvalue()
+        return self.captured_stderr.getvalue()
 
 
 class DelayedAssertionMixin(unittest.TestCase):
