@@ -20,11 +20,11 @@ except:
 import six
 
 
-class Tee(object):
+class _Tee(object):
     """A file-like that writes to all the file-likes it has."""
 
     def __init__(self, *files):
-        """Make a Tee that writes to all the files in `files.`"""
+        """Make a `_Tee` that writes to all the files in `files.`"""
         self._files = files
         if hasattr(files[0], "encoding"):
             self.encoding = files[0].encoding
@@ -166,12 +166,12 @@ class StdStreamCapturingMixin(unittest.TestCase):
         super(StdStreamCapturingMixin, self).setUp()
 
         # Capture stdout and stderr so we can examine them in tests.
-        # nose keeps stdout from littering the screen, so we can safely Tee it,
-        # but it doesn't capture stderr, so we don't want to Tee stderr to the
-        # real stderr, since it will interfere with our nice field of dots.
+        # nose keeps stdout from littering the screen, so we can safely _Tee
+        # it, but it doesn't capture stderr, so we don't want to _Tee stderr to
+        # the real stderr, since it will interfere with our nice field of dots.
         old_stdout = sys.stdout
         self.captured_stdout = six.StringIO()
-        sys.stdout = Tee(sys.stdout, self.captured_stdout)
+        sys.stdout = _Tee(sys.stdout, self.captured_stdout)
 
         old_stderr = sys.stderr
         self.captured_stderr = six.StringIO()
