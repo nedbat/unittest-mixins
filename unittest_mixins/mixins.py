@@ -108,9 +108,9 @@ class ModuleAwareMixin(unittest.TestCase):
 
         # Record sys.modules here so we can restore it in cleanup_modules.
         self.old_modules = list(sys.modules)
-        self.addCleanup(self.cleanup_modules)
+        self.addCleanup(self._cleanup_modules)
 
-    def cleanup_modules(self):
+    def _cleanup_modules(self):
         """Remove any new modules imported during the test run.
 
         This lets us import the same source files for more than one test.
@@ -135,9 +135,9 @@ class EnvironmentAwareMixin(unittest.TestCase):
         super(EnvironmentAwareMixin, self).setUp()
 
         # Record environment variables that we changed with set_environ.
-        self.environ_undos = {}
+        self._environ_undos = {}
 
-        self.addCleanup(self.cleanup_environ)
+        self.addCleanup(self._cleanup_environ)
 
     def set_environ(self, name, value):
         """Set an environment variable `name` to be `value`.
@@ -146,13 +146,13 @@ class EnvironmentAwareMixin(unittest.TestCase):
         so that `cleanup_environ` can restore its original value.
 
         """
-        if name not in self.environ_undos:
-            self.environ_undos[name] = os.environ.get(name)
+        if name not in self._environ_undos:
+            self._environ_undos[name] = os.environ.get(name)
         os.environ[name] = value
 
-    def cleanup_environ(self):
+    def _cleanup_environ(self):
         """Undo all the changes made by `set_environ`."""
-        for name, value in self.environ_undos.items():
+        for name, value in self._environ_undos.items():
             if value is None:
                 del os.environ[name]
             else:
@@ -170,12 +170,12 @@ class StdStreamCapturingMixin(unittest.TestCase):
         # it, but it doesn't capture stderr, so we don't want to _Tee stderr to
         # the real stderr, since it will interfere with our nice field of dots.
         old_stdout = sys.stdout
-        self.captured_stdout = six.StringIO()
-        sys.stdout = _Tee(sys.stdout, self.captured_stdout)
+        self._captured_stdout = six.StringIO()
+        sys.stdout = _Tee(sys.stdout, self._captured_stdout)
 
         old_stderr = sys.stderr
-        self.captured_stderr = six.StringIO()
-        sys.stderr = self.captured_stderr
+        self._captured_stderr = six.StringIO()
+        sys.stderr = self._captured_stderr
 
         self.addCleanup(self._cleanup_std_streams, old_stdout, old_stderr)
 
@@ -186,11 +186,11 @@ class StdStreamCapturingMixin(unittest.TestCase):
 
     def stdout(self):
         """Return the data written to stdout during the test."""
-        return self.captured_stdout.getvalue()
+        return self._captured_stdout.getvalue()
 
     def stderr(self):
         """Return the data written to stderr during the test."""
-        return self.captured_stderr.getvalue()
+        return self._captured_stderr.getvalue()
 
 
 class DelayedAssertionMixin(unittest.TestCase):
@@ -252,6 +252,8 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
     Includes SysPathAwareMixin and ModuleAwareMixin, because making and using
     temp directories like this will also need that kind of isolation.
 
+    The temp directory is available as self.temp_dir.
+
     """
 
     # Our own setting: most of these tests run in their own temp directory.
@@ -269,7 +271,7 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
 
         if self.run_in_temp_dir:
             # Create a temporary directory.
-            self.temp_dir = self.make_temp_dir("test_cover")
+            self.temp_dir = self._make_temp_dir("test_cover")
             self.chdir(self.temp_dir)
 
             # Modules should be importable from this temp directory.  We don't
@@ -278,14 +280,21 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
             # problems.
             sys.path.insert(0, os.getcwd())
 
-        class_behavior = self.class_behavior()
+        class_behavior = self._class_behavior()
         class_behavior.tests += 1
         class_behavior.temp_dir = self.run_in_temp_dir
         class_behavior.no_files_ok = self.no_files_in_temp_dir
 
-        self.addCleanup(self.check_behavior)
+        self.addCleanup(self._check_behavior)
 
-    def make_temp_dir(self, slug="test_cover"):
+    def _check_behavior(self):
+        """Check that we did the right things."""
+
+        class_behavior = self._class_behavior()
+        if class_behavior.test_method_made_any_files:
+            class_behavior.tests_making_files += 1
+
+    def _make_temp_dir(self, slug="test_cover"):
         """Make a temp directory that is cleaned up when the test is done."""
         name = "%s_%08d" % (slug, random.randint(0, 99999999))
         temp_dir = os.path.join(tempfile.gettempdir(), name)
@@ -298,13 +307,6 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
         old_dir = os.getcwd()
         os.chdir(new_dir)
         self.addCleanup(os.chdir, old_dir)
-
-    def check_behavior(self):
-        """Check that we did the right things."""
-
-        class_behavior = self.class_behavior()
-        if class_behavior.test_method_made_any_files:
-            class_behavior.tests_making_files += 1
 
     def make_file(self, filename, text="", newline=None):
         """Create a file for testing.
@@ -324,7 +326,7 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
         """
         # Tests that call `make_file` should be run in a temp environment.
         assert self.run_in_temp_dir
-        self.class_behavior().test_method_made_any_files = True
+        self._class_behavior().test_method_made_any_files = True
 
         text = textwrap.dedent(text)
         if newline:
@@ -350,7 +352,7 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
     # then report at the end of the process on test classes that were set
     # wrong.
 
-    class ClassBehavior(object):
+    class _ClassBehavior(object):
         """A value object to store per-class."""
         def __init__(self):
             self.tests = 0
@@ -361,12 +363,12 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
             self.test_method_made_any_files = False
 
     # Map from class to info about how it ran.
-    class_behaviors = collections.defaultdict(ClassBehavior)
+    _class_behaviors = collections.defaultdict(_ClassBehavior)
 
     @classmethod
-    def report_on_class_behavior(cls):
+    def _report_on_class_behavior(cls):
         """Called at process exit to report on class behavior."""
-        for test_class, behavior in cls.class_behaviors.items():
+        for test_class, behavior in cls._class_behaviors.items():
             bad = ""
             if behavior.tests <= behavior.skipped:
                 bad = ""
@@ -391,9 +393,9 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
                     )
                 )
 
-    def class_behavior(self):
+    def _class_behavior(self):
         """Get the ClassBehavior instance for this test."""
-        return self.class_behaviors[self.__class__]
+        return self._class_behaviors[self.__class__]
 
 # When the process ends, find out about bad classes.
-atexit.register(TempDirMixin.report_on_class_behavior)
+atexit.register(TempDirMixin._report_on_class_behavior)
