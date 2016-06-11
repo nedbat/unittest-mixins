@@ -5,7 +5,10 @@
 """Tests that our test infrastructure is really working!"""
 
 import os
+import os.path
 import re
+import shutil
+import tempfile
 import textwrap
 try:
     import unittest2 as unittest
@@ -14,7 +17,57 @@ except ImportError:
 
 import six
 
-from unittest_mixins import EnvironmentAwareMixin, TempDirMixin, DelayedAssertionMixin
+from unittest_mixins import (
+    EnvironmentAwareMixin, TempDirMixin, DelayedAssertionMixin,
+    change_dir,
+)
+
+
+class ChangeDirTest(unittest.TestCase):
+    """Test the change_dir decorator."""
+    def setUp(self):
+        super(ChangeDirTest, self).setUp()
+        self.root = tempfile.mkdtemp(prefix="change_dir_test")
+        self.addCleanup(shutil.rmtree, self.root)
+        self.a_dir = os.path.join(self.root, "a_dir")
+        os.mkdir(self.a_dir)
+        self.b_dir = os.path.join(self.root, "b_dir")
+        os.mkdir(self.b_dir)
+
+    def assert_same_file(self, f1, f2):
+        """Assert that f1 and f2 are the same file."""
+        self.assertEqual(os.path.realpath(f1), os.path.realpath(f2))
+
+    def assert_different_file(self, f1, f2):
+        """Assert that f1 and f2 are not the same file."""
+        self.assertNotEqual(os.path.realpath(f1), os.path.realpath(f2))
+
+    def test_change_dir(self):
+        here = os.getcwd()
+        self.assert_different_file(here, self.root)
+        with change_dir(self.root):
+            self.assert_same_file(os.getcwd(), self.root)
+        self.assert_same_file(os.getcwd(), here)
+
+    def test_change_dir_twice(self):
+        here = os.getcwd()
+        self.assert_different_file(here, self.root)
+        with change_dir(self.root):
+            self.assert_same_file(os.getcwd(), self.root)
+            os.chdir("a_dir")
+            self.assert_same_file(os.getcwd(), self.a_dir)
+        self.assert_same_file(os.getcwd(), here)
+
+    def test_change_dir_with_exception(self):
+        here = os.getcwd()
+        self.assert_different_file(here, self.root)
+        try:
+            with change_dir(self.root):
+                self.assert_same_file(os.getcwd(), self.root)
+                raise ValueError("hi")
+        except ValueError:
+            pass
+        self.assert_same_file(os.getcwd(), here)
 
 
 class TempDirMixinTest(TempDirMixin, unittest.TestCase):
