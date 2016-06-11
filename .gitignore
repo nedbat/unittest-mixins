@@ -1,5 +1,6 @@
 *.pyc
 .coverage
+.coverage.*
 htmlcov
 .tox
 MANIFEST
