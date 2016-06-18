@@ -8,6 +8,7 @@ import os
 import os.path
 import re
 import shutil
+import sys
 import tempfile
 import textwrap
 try:
@@ -18,8 +19,11 @@ except ImportError:
 import six
 
 from unittest_mixins import (
-    EnvironmentAwareMixin, TempDirMixin, DelayedAssertionMixin,
     change_dir,
+    DelayedAssertionMixin,
+    EnvironmentAwareMixin,
+    StdStreamCapturingMixin,
+    TempDirMixin,
 )
 
 
@@ -225,6 +229,13 @@ def run_tests_from_class(klass):
     return results
 
 
+def assert_all_passed(results, tests_run):
+    assert results.testsRun == tests_run
+    assert results.failures == []
+    assert results.errors == []
+    assert results.skipped == []
+
+
 class RunTestsFromClassTest(unittest.TestCase):
     """Tests of the run_tests_from_class function."""
 
@@ -252,3 +263,35 @@ class RunTestsFromClassTest(unittest.TestCase):
         self.assertEqual(results.errors[0][0]._testMethodName, 'test_error')
         self.assertEqual(len(results.skipped), 1)
         self.assertEqual(results.skipped[0][0]._testMethodName, 'test_skip')
+
+
+class StdStreamCapturingMixinTest(unittest.TestCase):
+    """Tests of StdStreamCapturingMixin."""
+
+    class TheTestsToTest(StdStreamCapturingMixin, unittest.TestCase):
+        def test_stdout(self):
+            sys.stdout.write("Xyzzy")
+            self.assertIn("Xyzzy", self.stdout())
+            self.assertNotIn("Xyzzy", self.stderr())
+
+        def test_stderr(self):
+            sys.stderr.write("Plugh")
+            self.assertIn("Plugh", self.stderr())
+            self.assertNotIn("Plugh", self.stdout())
+
+    def test_the_tests_to_test(self):
+        old_stdout = sys.stdout
+        old_stderr = sys.stderr
+        self.addCleanup(self._cleanup_streams, old_stdout, old_stderr)
+        sys.stdout = my_stdout = six.StringIO()
+        sys.stderr = my_stderr = six.StringIO()
+
+        results = run_tests_from_class(self.TheTestsToTest)
+        assert_all_passed(results, tests_run=2)
+
+        self.assertIn(my_stdout.getvalue(), "Xyzzy")
+        self.assertIn(my_stderr.getvalue(), "Plugh")
+
+    def _cleanup_streams(self, stdout, stderr):
+        sys.stdout = stdout
+        sys.stderr = stderr
