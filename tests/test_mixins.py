@@ -215,3 +215,40 @@ class DelayedAssertionMixinTest(DelayedAssertionMixin, unittest.TestCase):
         with self.delayed_assertions():
             self.assertEqual("x", "x")
             self.assertEqual("y", "y")
+
+
+def run_tests_from_class(klass):
+    """Run the unittest tests in klass, and return a TestResult."""
+    suite = unittest.TestLoader().loadTestsFromTestCase(klass)
+    results = unittest.TestResult()
+    suite.run(results)
+    return results
+
+
+class RunTestsFromClassTest(unittest.TestCase):
+    """Tests of the run_tests_from_class function."""
+
+    class TheTestsToTest(unittest.TestCase):
+        """Sample tests to test the run_tests_from_class function."""
+
+        def test_pass(self):
+            self.assertEqual(1, 1)
+
+        def test_fail(self):
+            self.assertEqual(1, 0)
+
+        def test_skip(self):
+            self.skipTest("I feel like it")
+
+        def test_error(self):
+            raise Exception("BOOM")
+
+    def test_the_tests_to_test(self):
+        results = run_tests_from_class(self.TheTestsToTest)
+        self.assertEqual(results.testsRun, 4)
+        self.assertEqual(len(results.failures), 1)
+        self.assertEqual(results.failures[0][0]._testMethodName, 'test_fail')
+        self.assertEqual(len(results.errors), 1)
+        self.assertEqual(results.errors[0][0]._testMethodName, 'test_error')
+        self.assertEqual(len(results.skipped), 1)
+        self.assertEqual(results.skipped[0][0]._testMethodName, 'test_skip')
