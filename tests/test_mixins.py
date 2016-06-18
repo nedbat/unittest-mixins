@@ -240,23 +240,23 @@ def assert_all_passed(results, tests_run=None):
 class RunTestsFromClassTest(unittest.TestCase):
     """Tests of the run_tests_from_class function."""
 
-    class TheTestsToTest(unittest.TestCase):
-        """Sample tests to test the run_tests_from_class function."""
-
-        def test_pass(self):
-            self.assertEqual(1, 1)
-
-        def test_fail(self):
-            self.assertEqual(1, 0)
-
-        def test_skip(self):
-            self.skipTest("I feel like it")
-
-        def test_error(self):
-            raise Exception("BOOM")
-
     def test_the_tests_to_test(self):
-        results = run_tests_from_class(self.TheTestsToTest)
+        class TheTestsToTest(unittest.TestCase):
+            """Sample tests to test the run_tests_from_class function."""
+
+            def test_pass(self):
+                self.assertEqual(1, 1)
+
+            def test_fail(self):
+                self.assertEqual(1, 0)
+
+            def test_skip(self):
+                self.skipTest("I feel like it")
+
+            def test_error(self):
+                raise Exception("BOOM")
+
+        results = run_tests_from_class(TheTestsToTest)
         self.assertEqual(results.testsRun, 4)
         self.assertEqual(len(results.failures), 1)
         self.assertEqual(results.failures[0][0]._testMethodName, 'test_fail')
@@ -269,25 +269,25 @@ class RunTestsFromClassTest(unittest.TestCase):
 class StdStreamCapturingMixinTest(unittest.TestCase):
     """Tests of StdStreamCapturingMixin."""
 
-    class TheTestsToTest(StdStreamCapturingMixin, unittest.TestCase):
-        def test_stdout(self):
-            sys.stdout.write("Xyzzy")
-            self.assertIn("Xyzzy", self.stdout())
-            self.assertNotIn("Xyzzy", self.stderr())
-
-        def test_stderr(self):
-            sys.stderr.write("Plugh")
-            self.assertIn("Plugh", self.stderr())
-            self.assertNotIn("Plugh", self.stdout())
-
     def test_the_tests_to_test(self):
+        class TheTestsToTest(StdStreamCapturingMixin, unittest.TestCase):
+            def test_stdout(self):
+                sys.stdout.write("Xyzzy")
+                self.assertIn("Xyzzy", self.stdout())
+                self.assertNotIn("Xyzzy", self.stderr())
+
+            def test_stderr(self):
+                sys.stderr.write("Plugh")
+                self.assertIn("Plugh", self.stderr())
+                self.assertNotIn("Plugh", self.stdout())
+
         old_stdout = sys.stdout
         old_stderr = sys.stderr
         self.addCleanup(self._cleanup_streams, old_stdout, old_stderr)
         sys.stdout = my_stdout = six.StringIO()
         sys.stderr = my_stderr = six.StringIO()
 
-        results = run_tests_from_class(self.TheTestsToTest)
+        results = run_tests_from_class(TheTestsToTest)
         assert_all_passed(results, tests_run=2)
 
         self.assertIn(my_stdout.getvalue(), "Xyzzy")
