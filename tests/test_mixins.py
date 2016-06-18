@@ -445,3 +445,35 @@ class ClassBehaviorTest(unittest.TestCase):
         self.assertEqual(len(results.skipped), 2)
         behavior = self.get_behavior(SkippedAllTests)
         self.assertIsNone(behavior.badness())
+
+
+class ModuleAwareMixinTest(TempDirMixin, unittest.TestCase):
+    def test_two_tests_get_different_modules(self):
+        class MakeAndImportFilesTest(TempDirMixin, unittest.TestCase):
+            def test_one(self):
+                self.make_file("xyzzy.py", "A = 17")
+                import xyzzy
+                self.assertEqual(xyzzy.A, 17)
+
+            def test_two(self):
+                self.make_file("xyzzy.py", "A = 42")
+                import xyzzy
+                self.assertEqual(xyzzy.A, 42)
+
+        results = run_tests_from_class(MakeAndImportFilesTest)
+        assert_all_passed(results, tests_run=2)
+
+    def test_cleanup_and_reimport(self):
+        sys.dont_write_bytecode = True  # Should cleanup_modules handle this somehow?
+
+        self.make_file("xyzzy.py", "A = 17")
+        import xyzzy
+        self.assertEqual(xyzzy.A, 17)
+
+        self.cleanup_modules()
+
+        self.make_file("xyzzy.py", "A = 42")
+        import xyzzy
+        self.assertEqual(xyzzy.A, 42)
+
+        sys.dont_write_bytecode = False
