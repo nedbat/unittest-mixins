@@ -420,8 +420,8 @@ class ClassBehaviorTest(unittest.TestCase):
             run_in_temp_dir = False
 
             def test_will_fail(self):
-                self.make_file("fooey.boo", "Hello there")
                 assert not am_in_tempdir()
+                self.make_file("fooey.boo", "Hello there")
 
         results = run_tests_from_class(MadeFilesNoTempDir)
         self.assertEqual(results.testsRun, 1)
