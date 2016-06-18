@@ -24,7 +24,7 @@ Development Status :: 5 - Production/Stable
 
 setup(
     name='unittest-mixins',
-    version='1.1',
+    version='1.1.1',
     description='Helpful mixins for unittest classes',
     author='Ned Batchelder',
     author_email='ned@nedbatchelder.com',
