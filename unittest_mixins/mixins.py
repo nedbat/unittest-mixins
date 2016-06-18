@@ -331,7 +331,7 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
 
         """
         # Tests that call `make_file` should be run in a temp environment.
-        assert self.run_in_temp_dir
+        assert self.run_in_temp_dir, "Should only use make_file in temp directories"
         self._class_behavior().test_method_made_any_files = True
 
         text = textwrap.dedent(text)
@@ -361,6 +361,7 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
     class _ClassBehavior(object):
         """A value object to store per-class."""
         def __init__(self):
+            self.klass = None
             self.tests = 0
             self.skipped = 0
             self.temp_dir = True
@@ -368,40 +369,48 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
             self.tests_making_files = 0
             self.test_method_made_any_files = False
 
+        def badness(self):
+            """Return a string describing bad behavior, or None."""
+            bad = ""
+            if self.tests <= self.skipped:
+                bad = ""
+            elif self.temp_dir and self.tests_making_files == 0:
+                if not self.no_files_ok:
+                    bad = "Inefficient"
+            elif not self.temp_dir and self.tests_making_files > 0:
+                bad = "Unsafe"
+
+            if bad:
+                if self.temp_dir:
+                    where = "in a temp directory"
+                else:
+                    where = "without a temp directory"
+                return (
+                    "%s: %s ran %d tests, %d made files %s" % (
+                        bad,
+                        self.klass.__name__,
+                        self.tests,
+                        self.tests_making_files,
+                        where,
+                    )
+                )
+
     # Map from class to info about how it ran.
     _class_behaviors = collections.defaultdict(_ClassBehavior)
 
     @classmethod
     def _report_on_class_behavior(cls):
         """Called at process exit to report on class behavior."""
-        for test_class, behavior in cls._class_behaviors.items():
-            bad = ""
-            if behavior.tests <= behavior.skipped:
-                bad = ""
-            elif behavior.temp_dir and behavior.tests_making_files == 0:
-                if not behavior.no_files_ok:
-                    bad = "Inefficient"
-            elif not behavior.temp_dir and behavior.tests_making_files > 0:
-                bad = "Unsafe"
-
-            if bad:
-                if behavior.temp_dir:
-                    where = "in a temp directory"
-                else:
-                    where = "without a temp directory"
-                print(
-                    "%s: %s ran %d tests, %d made files %s" % (
-                        bad,
-                        test_class.__name__,
-                        behavior.tests,
-                        behavior.tests_making_files,
-                        where,
-                    )
-                )
+        for behavior in cls._class_behaviors.values():
+            badness = behavior.badness()
+            if badness:
+                print(badness)
 
     def _class_behavior(self):
         """Get the ClassBehavior instance for this test."""
-        return self._class_behaviors[self.__class__]
+        behavior = self._class_behaviors[self.__class__]
+        behavior.klass = self.__class__
+        return behavior
 
 # When the process ends, find out about bad classes.
 atexit.register(TempDirMixin._report_on_class_behavior)

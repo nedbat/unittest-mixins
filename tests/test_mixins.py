@@ -229,8 +229,9 @@ def run_tests_from_class(klass):
     return results
 
 
-def assert_all_passed(results, tests_run):
-    assert results.testsRun == tests_run
+def assert_all_passed(results, tests_run=None):
+    if tests_run is not None:
+        assert results.testsRun == tests_run
     assert results.failures == []
     assert results.errors == []
     assert results.skipped == []
@@ -295,3 +296,121 @@ class StdStreamCapturingMixinTest(unittest.TestCase):
     def _cleanup_streams(self, stdout, stderr):
         sys.stdout = stdout
         sys.stderr = stderr
+
+
+def am_in_tempdir():
+    """Are we currently in a temp directory?"""
+    return os.path.samefile(
+        os.path.dirname(os.getcwd()),
+        tempfile.gettempdir()
+    )
+
+
+class ClassBehaviorTest(unittest.TestCase):
+
+    def run_and_get_behavior(self, klass):
+        """Get the behavior record, and remove it so the process doesn't report on it."""
+        results = run_tests_from_class(klass)
+        assert_all_passed(results)
+        behavior = TempDirMixin._class_behaviors.pop(klass)
+        return behavior
+
+    def test_tests_are_in_distinct_temp_dirs(self):
+        the_dirs = set()
+
+        class AFewTests(TempDirMixin, unittest.TestCase):
+            def test_one(self):
+                the_dirs.add(os.getcwd())
+                assert am_in_tempdir()
+                self.make_file("fooey.boo", "Hello there")
+
+            def test_two(self):
+                the_dirs.add(os.getcwd())
+                assert am_in_tempdir()
+
+            def test_three(self):
+                the_dirs.add(os.getcwd())
+                assert am_in_tempdir()
+
+            def test_four_errors(self):
+                the_dirs.add(os.getcwd())
+                assert am_in_tempdir()
+                raise Exception("Boom")
+
+            def test_five_fails(self):
+                the_dirs.add(os.getcwd())
+                assert am_in_tempdir()
+                assert 1 == 0
+
+            def test_six(self):
+                the_dirs.add(os.getcwd())
+                assert am_in_tempdir()
+
+        assert not am_in_tempdir()
+        original_curdir = os.getcwd()
+
+        results = run_tests_from_class(AFewTests)
+        self.assertEqual(results.testsRun, 6)
+        self.assertEqual(len(results.errors), 1)
+        self.assertEqual(results.errors[0][0]._testMethodName, 'test_four_errors')
+        self.assertEqual(len(results.failures), 1)
+        self.assertEqual(results.failures[0][0]._testMethodName, 'test_five_fails')
+
+        # We should have six distinct temp dirs.
+        self.assertEqual(len(the_dirs), 6)
+
+        # And none of them should exist any more.
+        for a_dir in the_dirs:
+            self.assertFalse(os.path.exists(a_dir))
+
+        # We should be back where we started.
+        self.assertEqual(os.getcwd(), original_curdir)
+
+    def test_made_one_file(self):
+        class MadeOneFile(TempDirMixin, unittest.TestCase):
+            def test_pass(self):
+                self.make_file("fooey.boo", "Hello there")
+                assert am_in_tempdir()
+
+        behavior = self.run_and_get_behavior(MadeOneFile)
+        self.assertIsNone(behavior.badness())
+
+    def test_made_no_files(self):
+        class MadeNoFiles(TempDirMixin, unittest.TestCase):
+            def test_pass(self):
+                self.assertEqual(1, 1)
+                assert am_in_tempdir()
+
+        behavior = self.run_and_get_behavior(MadeNoFiles)
+        self.assertEqual(
+            behavior.badness(),
+            'Inefficient: MadeNoFiles ran 1 tests, 0 made files in a temp directory'
+        )
+
+    def test_made_no_files_no_temp_dir(self):
+        class MadeNoFilesOK(TempDirMixin, unittest.TestCase):
+            run_in_temp_dir = False
+
+            def test_pass(self):
+                self.assertEqual(1, 1)
+                assert not am_in_tempdir()
+
+        behavior = self.run_and_get_behavior(MadeNoFilesOK)
+        self.assertIsNone(behavior.badness())
+
+    def test_made_files_no_temp_dir(self):
+        class MadeFilesNoTempDir(TempDirMixin, unittest.TestCase):
+            run_in_temp_dir = False
+
+            def test_will_fail(self):
+                self.make_file("fooey.boo", "Hello there")
+                assert not am_in_tempdir()
+
+        results = run_tests_from_class(MadeFilesNoTempDir)
+        self.assertEqual(results.testsRun, 1)
+        self.assertEqual(len(results.failures), 1)
+        self.assertEqual(results.failures[0][0]._testMethodName, 'test_will_fail')
+        self.assertIn(
+            "AssertionError: Should only use make_file in temp directories",
+            results.failures[0][1]
+        )
