@@ -377,14 +377,9 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
             elif self.temp_dir and self.tests_making_files == 0:
                 if not self.no_files_ok:
                     bad = "Inefficient"
-            elif not self.temp_dir and self.tests_making_files > 0:
-                bad = "Unsafe"
 
             if bad:
-                if self.temp_dir:
-                    where = "in a temp directory"
-                else:
-                    where = "without a temp directory"
+                where = "in a temp directory"
                 return (
                     "%s: %s ran %d tests, %d made files %s" % (
                         bad,
