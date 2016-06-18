@@ -308,12 +308,15 @@ def am_in_tempdir():
 
 class ClassBehaviorTest(unittest.TestCase):
 
+    def get_behavior(self, klass):
+        behavior = TempDirMixin._class_behaviors.pop(klass)
+        return behavior
+
     def run_and_get_behavior(self, klass):
         """Get the behavior record, and remove it so the process doesn't report on it."""
         results = run_tests_from_class(klass)
         assert_all_passed(results)
-        behavior = TempDirMixin._class_behaviors.pop(klass)
-        return behavior
+        return self.get_behavior(klass)
 
     def test_tests_are_in_distinct_temp_dirs(self):
         the_dirs = set()
@@ -366,6 +369,9 @@ class ClassBehaviorTest(unittest.TestCase):
         # We should be back where we started.
         self.assertEqual(os.getcwd(), original_curdir)
 
+        # No bad behaviors.
+        self.assertIsNone(self.get_behavior(AFewTests).badness())
+
     def test_made_one_file(self):
         class MadeOneFile(TempDirMixin, unittest.TestCase):
             def test_pass(self):
@@ -386,6 +392,17 @@ class ClassBehaviorTest(unittest.TestCase):
             behavior.badness(),
             'Inefficient: MadeNoFiles ran 1 tests, 0 made files in a temp directory'
         )
+
+    def test_made_no_files_but_its_ok(self):
+        class MadeNoFiles(TempDirMixin, unittest.TestCase):
+            no_files_in_temp_dir = True
+
+            def test_pass(self):
+                self.assertEqual(1, 1)
+                assert am_in_tempdir()
+
+        behavior = self.run_and_get_behavior(MadeNoFiles)
+        self.assertIsNone(behavior.badness())
 
     def test_made_no_files_no_temp_dir(self):
         class MadeNoFilesOK(TempDirMixin, unittest.TestCase):
@@ -414,3 +431,17 @@ class ClassBehaviorTest(unittest.TestCase):
             "AssertionError: Should only use make_file in temp directories",
             results.failures[0][1]
         )
+
+    def test_skipping_all_tests(self):
+        class SkippedAllTests(TempDirMixin, unittest.TestCase):
+            def test_skip_1(self):
+                self.skipTest("The first skip")
+
+            def test_skip_2(self):
+                self.skipTest("The second skip")
+
+        results = run_tests_from_class(SkippedAllTests)
+        self.assertEqual(results.testsRun, 2)
+        self.assertEqual(len(results.skipped), 2)
+        behavior = self.get_behavior(SkippedAllTests)
+        self.assertIsNone(behavior.badness())
