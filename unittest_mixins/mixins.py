@@ -407,5 +407,6 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
         behavior.klass = self.__class__
         return behavior
 
+
 # When the process ends, find out about bad classes.
 atexit.register(TempDirMixin._report_on_class_behavior)
