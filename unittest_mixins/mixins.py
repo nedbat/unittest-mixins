@@ -256,6 +256,40 @@ class DelayedAssertionMixin(unittest.TestCase):
         self._delayed_assertions.append(msg)
 
 
+def make_file(filename, text="", newline=None):
+    """Create a file for testing.
+
+    `filename` is the relative path to the file, including directories if
+    desired, which will be created if need be.
+
+    `text` is the content to create in the file, a native string (bytes in
+    Python 2, unicode in Python 3).
+
+    If `newline` is provided, it is a string that will be used as the line
+    endings in the created file, otherwise the line endings are as provided
+    in `text`.
+
+    Returns `filename`.
+
+    """
+    text = textwrap.dedent(text)
+    if newline:
+        text = text.replace("\n", newline)
+
+    # Make sure the directories are available.
+    dirs, _ = os.path.split(filename)
+    if dirs and not os.path.exists(dirs):
+        os.makedirs(dirs)
+
+    # Create the file.
+    with open(filename, 'wb') as f:
+        if six.PY3:
+            text = text.encode('utf8')
+        f.write(text)
+
+    return filename
+
+
 class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
     """A test case mixin that creates a temp directory and files in it.
 
@@ -324,41 +358,13 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
         self.addCleanup(os.chdir, old_dir)
 
     def make_file(self, filename, text="", newline=None):
-        """Create a file for testing.
+        """Create a file for testing.  See `make_file` for docs."""
 
-        `filename` is the relative path to the file, including directories if
-        desired, which will be created if need be.
-
-        `text` is the content to create in the file, a native string (bytes in
-        Python 2, unicode in Python 3).
-
-        If `newline` is provided, it is a string that will be used as the line
-        endings in the created file, otherwise the line endings are as provided
-        in `text`.
-
-        Returns `filename`.
-
-        """
         # Tests that call `make_file` should be run in a temp environment.
         assert self.run_in_temp_dir, "Should only use make_file in temp directories"
         self._class_behavior().test_method_made_any_files = True
 
-        text = textwrap.dedent(text)
-        if newline:
-            text = text.replace("\n", newline)
-
-        # Make sure the directories are available.
-        dirs, _ = os.path.split(filename)
-        if dirs and not os.path.exists(dirs):
-            os.makedirs(dirs)
-
-        # Create the file.
-        with open(filename, 'wb') as f:
-            if six.PY3:
-                text = text.encode('utf8')
-            f.write(text)
-
-        return filename
+        return make_file(filename, text, newline)
 
     # We run some tests in temporary directories, because they may need to make
     # files for the tests. But this is expensive, so we can change per-class
