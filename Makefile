@@ -25,6 +25,9 @@ sterile: clean
 	-rm -rf .tox*
 	-rm -rf .cache
 
+smoke:
+	tox -e py27
+
 SDIST_CMD = python setup.py sdist --formats=gztar
 
 kit:
