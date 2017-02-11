@@ -3,6 +3,7 @@
 
 from .mixins import (       # noqa
     change_dir,
+    make_file,
     saved_sys_path,
     ModuleAwareMixin,
     ModuleCleaner,
