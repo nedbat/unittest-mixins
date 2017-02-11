@@ -100,18 +100,14 @@ def setup_with_context_manager(testcase, cm):
     return val
 
 
-class ModuleAwareMixin(unittest.TestCase):
-    """A test case mixin that isolates changes to sys.modules."""
+class ModuleCleaner(object):
+    """Remember the state of sys.modules, and provide a way to restore it."""
 
-    def setUp(self):
-        super(ModuleAwareMixin, self).setUp()
-
-        # Record sys.modules here so we can restore it in cleanup_modules.
+    def __init__(self):
         self._old_modules = list(sys.modules)
-        self.addCleanup(self.cleanup_modules)
 
     def cleanup_modules(self):
-        """Remove any new modules imported during the test run.
+        """Remove any new modules imported since our construction.
 
         This lets us import the same source files for more than one test, or
         if called explicitly, within one test.
@@ -119,6 +115,19 @@ class ModuleAwareMixin(unittest.TestCase):
         """
         for m in [m for m in sys.modules if m not in self._old_modules]:
             del sys.modules[m]
+
+
+class ModuleAwareMixin(unittest.TestCase):
+    """A test case mixin that isolates changes to sys.modules."""
+
+    def setUp(self):
+        super(ModuleAwareMixin, self).setUp()
+
+        self._module_cleaner = ModuleCleaner()
+        self.addCleanup(self._module_cleaner.cleanup_modules)
+
+    def cleanup_modules(self):
+        self._module_cleaner.cleanup_modules()
 
 
 class SysPathAwareMixin(unittest.TestCase):

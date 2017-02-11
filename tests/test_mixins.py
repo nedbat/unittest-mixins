@@ -4,6 +4,7 @@
 
 """Tests that our test infrastructure is really working!"""
 
+import contextlib
 import os
 import os.path
 import re
@@ -22,6 +23,7 @@ from unittest_mixins import (
     change_dir,
     DelayedAssertionMixin,
     EnvironmentAwareMixin,
+    ModuleCleaner,
     StdStreamCapturingMixin,
     TempDirMixin,
 )
@@ -447,6 +449,16 @@ class ClassBehaviorTest(unittest.TestCase):
         self.assertIsNone(behavior.badness())
 
 
+@contextlib.contextmanager
+def no_bytecode():
+    """Temporarily stop writing bytecode."""
+    sys.dont_write_bytecode = True
+    try:
+        yield
+    finally:
+        sys.dont_write_bytecode = False
+
+
 class ModuleAwareMixinTest(TempDirMixin, unittest.TestCase):
     def test_two_tests_get_different_modules(self):
         class MakeAndImportFilesTest(TempDirMixin, unittest.TestCase):
@@ -464,16 +476,29 @@ class ModuleAwareMixinTest(TempDirMixin, unittest.TestCase):
         assert_all_passed(results, tests_run=2)
 
     def test_cleanup_and_reimport(self):
-        sys.dont_write_bytecode = True  # Should cleanup_modules handle this somehow?
+        with no_bytecode():
+            self.make_file("xyzzy.py", "A = 17")
+            import xyzzy
+            self.assertEqual(xyzzy.A, 17)
 
-        self.make_file("xyzzy.py", "A = 17")
-        import xyzzy
-        self.assertEqual(xyzzy.A, 17)
+            self.cleanup_modules()
 
-        self.cleanup_modules()
+            self.make_file("xyzzy.py", "A = 42")
+            import xyzzy
+            self.assertEqual(xyzzy.A, 42)
 
-        self.make_file("xyzzy.py", "A = 42")
-        import xyzzy
-        self.assertEqual(xyzzy.A, 42)
 
-        sys.dont_write_bytecode = False
+class ModuleCleanerMixinTest(TempDirMixin, unittest.TestCase):
+    def test_module_cleaner(self):
+        with no_bytecode():
+            cleaner = ModuleCleaner()
+
+            self.make_file("xyzzy.py", "A = 17")
+            import xyzzy
+            self.assertEqual(xyzzy.A, 17)
+
+            cleaner.cleanup_modules()
+
+            self.make_file("xyzzy.py", "A = 42")
+            import xyzzy
+            self.assertEqual(xyzzy.A, 42)

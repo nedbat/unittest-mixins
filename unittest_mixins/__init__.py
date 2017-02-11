@@ -5,6 +5,7 @@ from .mixins import (       # noqa
     change_dir,
     saved_sys_path,
     ModuleAwareMixin,
+    ModuleCleaner,
     SysPathAwareMixin,
     EnvironmentAwareMixin,
     StdStreamCapturingMixin,
