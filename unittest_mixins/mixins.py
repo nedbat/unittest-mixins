@@ -170,7 +170,18 @@ class EnvironmentAwareMixin(unittest.TestCase):
 
 
 class StdStreamCapturingMixin(unittest.TestCase):
-    """A test case mixin that captures stdout and stderr."""
+    """A test case mixin that captures stdout and stderr.
+
+    All data written to sys.stdout is captured, and available from the `stdout`
+    method.  That data is also still written to stdout.
+
+    The same is true for stderr, it's available from the `stderr` method. But
+    because some test runners don't capture stderr for you, stderr is only
+    written to stderr if you set `show_stderr` to True in your test class.
+
+    """
+
+    show_stderr = False
 
     def setUp(self):
         super(StdStreamCapturingMixin, self).setUp()
@@ -185,7 +196,10 @@ class StdStreamCapturingMixin(unittest.TestCase):
 
         old_stderr = sys.stderr
         self.captured_stderr = six.StringIO()
-        sys.stderr = self.captured_stderr
+        if self.show_stderr:
+            sys.stderr = _Tee(sys.stderr, self.captured_stderr)
+        else:
+            sys.stderr = self.captured_stderr
 
         self.addCleanup(self._cleanup_std_streams, old_stdout, old_stderr)
 
