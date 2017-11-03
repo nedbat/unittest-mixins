@@ -14,7 +14,7 @@ import tempfile
 import textwrap
 try:
     import unittest2 as unittest
-except:
+except ImportError:
     import unittest
 
 import six
