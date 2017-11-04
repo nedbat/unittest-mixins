@@ -175,6 +175,32 @@ class EnvironmentAwareMixinTest(EnvironmentAwareMixin, unittest.TestCase):
         # The environment should be restored.
         self.assertNotIn("XYZZY_PLUGH", os.environ)
 
+    def test_deleting(self):
+        self.del_environ(self.envvar)
+        self.assertNotIn(self.envvar, os.environ)
+        self.doCleanups()
+        self.assertEqual(os.environ[self.envvar], self.original_text)
+
+    def test_deleting_keeps_things_we_set(self):
+        self.set_environ("XYZZY_PLUGH", "Vogon")
+        self.del_environ("XYZZY_PLUGH")
+        self.assertEqual(os.environ["XYZZY_PLUGH"], "Vogon")
+        self.doCleanups()
+        self.assertNotIn("XYZZY_PLUGH", os.environ)
+
+    def test_deleting_things_twice(self):
+        self.set_environ("XYZZY_PLUGH", "Vogon")
+        self.del_environ("XYZZY_PLUGH")
+        self.del_environ("XYZZY_PLUGH")
+        self.assertEqual(os.environ["XYZZY_PLUGH"], "Vogon")
+        self.doCleanups()
+        self.assertNotIn("XYZZY_PLUGH", os.environ)
+
+    def test_deleting_nonexistent_things(self):
+        self.assertNotIn("XYZZY_PLUGH", os.environ)
+        self.del_environ("XYZZY_PLUGH")
+        self.assertNotIn("XYZZY_PLUGH", os.environ)
+
 
 class DelayedAssertionMixinTest(DelayedAssertionMixin, unittest.TestCase):
     """Test the `delayed_assertions` method."""

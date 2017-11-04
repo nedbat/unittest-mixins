@@ -160,6 +160,23 @@ class EnvironmentAwareMixin(unittest.TestCase):
             self._environ_undos[name] = os.environ.get(name)
         os.environ[name] = value
 
+    def del_environ(self, name):
+        """Delete an environment variable, unless we set it.
+
+        The environment variable is deleted, unless it had been set by an
+        earlier call to `set_environ` in the same test method.  This can be
+        used to isolate your test from environment variables leaking into your
+        tests, while still allowing your test to affect the particular
+        variables it needs to.
+
+        Attempting to delete a variable that doesn't exist is fine, it does not
+        raise an exception.
+
+        """
+        if name not in self._environ_undos and name in os.environ:
+            self._environ_undos[name] = os.environ.get(name)
+            del os.environ[name]
+
     def _cleanup_environ(self):
         """Undo all the changes made by `set_environ`."""
         for name, value in self._environ_undos.items():
