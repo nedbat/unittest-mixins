@@ -23,7 +23,7 @@ clean:
 
 sterile: clean
 	-rm -rf .tox*
-	-rm -rf .cache
+	-rm -rf .pytest_cache
 
 smoke:
 	tox -e py27
