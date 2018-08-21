@@ -8,6 +8,7 @@ import collections
 import contextlib
 import os
 import random
+import re
 import shutil
 import sys
 import tempfile
@@ -378,9 +379,10 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
 
     def _make_temp_dir(self):
         """Make a temp directory that is cleaned up when the test is done."""
+        slug = re.sub(r"[^\w]+", "_", self.id())
         name = "{0}{1}_{2:08d}".format(
             self.temp_dir_prefix,
-            self.id().replace('.', '_'),
+            slug,
             random.randint(0, 99999999)
         )
         temp_dir = os.path.join(tempfile.gettempdir(), name)
