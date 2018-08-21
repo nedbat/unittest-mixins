@@ -349,7 +349,9 @@ class ClassBehaviorTest(unittest.TestCase):
     def test_tests_are_in_distinct_temp_dirs(self):
         the_dirs = set()
 
-        class AFewTests(TempDirMixin, unittest.TestCase):
+        class _AFewTests(TempDirMixin, unittest.TestCase):
+            temp_dir_prefix = "Prefix6_"
+
             def test_one(self):
                 the_dirs.add(os.getcwd())
                 assert am_in_tempdir()
@@ -377,6 +379,14 @@ class ClassBehaviorTest(unittest.TestCase):
                 the_dirs.add(os.getcwd())
                 assert am_in_tempdir()
 
+        # This strange way of making the test class is because id() for nested
+        # classes changed in 3.5: it named these tests ClassBehaviorTest
+        # instead of AFewTests. Making a subclass like this avoids the nesting,
+        # which we are only doing here so that the test runner won't run the
+        # tests when we don't want it to, and so the class will have access to
+        # the_dirs.
+        AFewTests = type("AFewTests", (_AFewTests,), {})
+
         assert not am_in_tempdir()
         original_curdir = os.getcwd()
 
@@ -389,6 +399,24 @@ class ClassBehaviorTest(unittest.TestCase):
 
         # We should have six distinct temp dirs.
         self.assertEqual(len(the_dirs), 6)
+
+        # Get the number suffixes
+        suffixes = [re.search(r"\d+$", d).group() for d in the_dirs]
+        self.assertTrue(all(len(s) == 8 for s in suffixes))
+        self.assertTrue(len(set(suffixes)) == 6)
+
+        # The directories should use our prefix, and the test name.
+        tempdir = os.path.realpath(tempfile.gettempdir())
+        self.assertTrue(all(d.startswith(tempdir) for d in the_dirs))
+        centers = sorted(d[len(tempdir)+1:-8] for d in the_dirs)
+        self.assertEqual(centers, [
+            'Prefix6_tests_test_mixins_AFewTests_test_five_fails_',
+            'Prefix6_tests_test_mixins_AFewTests_test_four_errors_',
+            'Prefix6_tests_test_mixins_AFewTests_test_one_',
+            'Prefix6_tests_test_mixins_AFewTests_test_six_',
+            'Prefix6_tests_test_mixins_AFewTests_test_three_',
+            'Prefix6_tests_test_mixins_AFewTests_test_two_',
+        ])
 
         # And none of them should exist any more.
         for a_dir in the_dirs:

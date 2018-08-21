@@ -345,12 +345,15 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
     # Useful for debugging tests.
     keep_temp_dir = False
 
+    # Use this prefix when making temp directories.
+    temp_dir_prefix = "test_"
+
     def setUp(self):
         super(TempDirMixin, self).setUp()
 
         if self.run_in_temp_dir:
             # Create a temporary directory.
-            self.temp_dir = self._make_temp_dir("test_cover")
+            self.temp_dir = self._make_temp_dir()
             self.chdir(self.temp_dir)
 
             # Modules should be importable from this temp directory.  We don't
@@ -373,9 +376,13 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
         if class_behavior.test_method_made_any_files:
             class_behavior.tests_making_files += 1
 
-    def _make_temp_dir(self, slug="test_cover"):
+    def _make_temp_dir(self):
         """Make a temp directory that is cleaned up when the test is done."""
-        name = "%s_%08d" % (slug, random.randint(0, 99999999))
+        name = "{0}{1}_{2:08d}".format(
+            self.temp_dir_prefix,
+            self.id().replace('.', '_'),
+            random.randint(0, 99999999)
+        )
         temp_dir = os.path.join(tempfile.gettempdir(), name)
         os.makedirs(temp_dir)
         self.addCleanup(self._delete_temp_dir, temp_dir)
