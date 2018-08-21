@@ -341,6 +341,10 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
     # complaining.
     no_files_in_temp_dir = False
 
+    # Set this if you want to keep the temp dir after the test is done.
+    # Useful for debugging tests.
+    keep_temp_dir = False
+
     def setUp(self):
         super(TempDirMixin, self).setUp()
 
@@ -374,8 +378,13 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
         name = "%s_%08d" % (slug, random.randint(0, 99999999))
         temp_dir = os.path.join(tempfile.gettempdir(), name)
         os.makedirs(temp_dir)
-        self.addCleanup(shutil.rmtree, temp_dir)
+        self.addCleanup(self._delete_temp_dir, temp_dir)
         return temp_dir
+
+    def _delete_temp_dir(self, temp_dir):
+        """Delete the temp directory, if we should."""
+        if not self.keep_temp_dir:
+            shutil.rmtree(temp_dir)
 
     def skipTest(self, reason):
         """Skip this test, and give a reason."""

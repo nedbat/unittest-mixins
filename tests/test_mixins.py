@@ -474,6 +474,35 @@ class ClassBehaviorTest(unittest.TestCase):
         behavior = self.get_behavior(SkippedAllTests)
         self.assertIsNone(behavior.badness())
 
+    def test_keeping_temp_dir(self):
+        the_dirs = set()
+
+        class AFewTests(TempDirMixin, unittest.TestCase):
+            keep_temp_dir = True
+
+            def test_one(self):
+                the_dirs.add(os.getcwd())
+                assert am_in_tempdir()
+                self.make_file("fooey.boo", "Hello there")
+
+            def test_two(self):
+                the_dirs.add(os.getcwd())
+                assert am_in_tempdir()
+
+        original_curdir = os.getcwd()
+        results = run_tests_from_class(AFewTests)
+        self.assertEqual(results.testsRun, 2)
+
+        # We should have two distinct temp dirs.
+        self.assertEqual(len(the_dirs), 2)
+
+        # And all of them should exist.
+        for a_dir in the_dirs:
+            self.assertTrue(os.path.exists(a_dir))
+
+        # We should be back where we started.
+        self.assertEqual(os.getcwd(), original_curdir)
+
 
 @contextlib.contextmanager
 def no_bytecode():
