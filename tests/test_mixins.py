@@ -517,6 +517,12 @@ class ClassBehaviorTest(unittest.TestCase):
                 the_dirs.add(os.getcwd())
                 assert am_in_tempdir()
 
+        # We'll be leaving test directories behind, so clean them up ourselves.
+        def clean_up():
+            for a_dir in the_dirs:
+                shutil.rmtree(a_dir)
+        self.addCleanup(clean_up)
+
         original_curdir = os.getcwd()
         results = run_tests_from_class(AFewTests)
         self.assertEqual(results.testsRun, 2)
