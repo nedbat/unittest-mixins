@@ -288,14 +288,14 @@ class DelayedAssertionMixin(unittest.TestCase):
         self._delayed_assertions.append(msg)
 
 
-def make_file(filename, text="", newline=None):
+def make_file(filename, text="", bytes=b"", newline=None):
     """Create a file for testing.
 
     `filename` is the relative path to the file, including directories if
     desired, which will be created if need be.
 
     `text` is the content to create in the file, a native string (bytes in
-    Python 2, unicode in Python 3).
+    Python 2, unicode in Python 3), or `bytes` are the bytes to write.
 
     If `newline` is provided, it is a string that will be used as the line
     endings in the created file, otherwise the line endings are as provided
@@ -304,9 +304,16 @@ def make_file(filename, text="", newline=None):
     Returns `filename`.
 
     """
-    text = textwrap.dedent(text)
-    if newline:
-        text = text.replace("\n", newline)
+    if bytes:
+        data = bytes
+    else:
+        text = textwrap.dedent(text)
+        if newline:
+            text = text.replace("\n", newline)
+        if six.PY3:
+            data = text.encode('utf8')
+        else:
+            data = text
 
     # Make sure the directories are available.
     dirs, _ = os.path.split(filename)
@@ -315,9 +322,7 @@ def make_file(filename, text="", newline=None):
 
     # Create the file.
     with open(filename, 'wb') as f:
-        if six.PY3:
-            text = text.encode('utf8')
-        f.write(text)
+        f.write(data)
 
     return filename
 
@@ -406,14 +411,14 @@ class TempDirMixin(SysPathAwareMixin, ModuleAwareMixin, unittest.TestCase):
         os.chdir(new_dir)
         self.addCleanup(os.chdir, old_dir)
 
-    def make_file(self, filename, text="", newline=None):
+    def make_file(self, filename, text="", bytes=b"", newline=None):
         """Create a file for testing.  See `make_file` for docs."""
 
         # Tests that call `make_file` should be run in a temp environment.
         assert self.run_in_temp_dir, "Should only use make_file in temp directories"
         self._class_behavior().test_method_made_any_files = True
 
-        return make_file(filename, text, newline)
+        return make_file(filename, text, bytes, newline)
 
     # We run some tests in temporary directories, because they may need to make
     # files for the tests. But this is expensive, so we can change per-class

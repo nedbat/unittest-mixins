@@ -97,6 +97,12 @@ class TempDirMixinTest(TempDirMixin, unittest.TestCase):
         # A deeper directory
         self.make_file("sub/deeper/evenmore/third.txt")
         self.assertEqual(self.file_text("sub/deeper/evenmore/third.txt"), "")
+        # Dedenting
+        self.make_file("dedented.txt", """\
+            Hello
+            Bye
+            """)
+        self.assertEqual(self.file_text("dedented.txt"), "Hello\nBye\n")
 
     def test_make_file_newline(self):
         self.make_file("unix.txt", "Hello\n")
@@ -114,6 +120,12 @@ class TempDirMixinTest(TempDirMixin, unittest.TestCase):
             text,
             b"tabblo: \xc2\xab\xcf\x84\xce\xb1\xd0\x91\xd0\xac\xe2\x84\x93\xcf\x83\xc2\xbb"
         )
+
+    def test_make_bytes_file(self):
+        self.make_file("binary.dat", bytes=b"\x99\x33\x66hello\0")
+        with open("binary.dat", "rb") as f:
+            data = f.read()
+        self.assertEqual(data, b"\x99\x33\x66hello\0")
 
 
 class EnvironmentAwareMixinTest(EnvironmentAwareMixin, unittest.TestCase):
